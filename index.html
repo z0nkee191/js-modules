@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Практична робота: Події клавіатури та Chart.js</title>
+
+  <!-- 1. Chart.js v4 (jsDelivr CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- 2. PNotify v5 (CSS + BrightTheme + JS Core) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@pnotify/core@5.2.0/dist/PNotify.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@pnotify/core@5.2.0/dist/BrightTheme.css">
+  <script src="https://cdn.jsdelivr.net/npm/@pnotify/core@5.2.0/dist/PNotify.js"></script>
+
+  <style>
+    :root {
+      --primary: #2196f3;
+      --primary-hover: #1976d2;
+      --primary-light: #e3f2fd;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --success: #10b981;
+      --error: #ef4444;
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 10px 25px -5px rgba(0, 0, 0, 0.06), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+      --radius: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text-main);
+      line-height: 1.5;
+      padding: 2rem 1rem;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 0.5rem;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.025em;
+    }
+
+    header p {
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+      font-size: 1rem;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--border);
+      padding: 2rem;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .card-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .badge {
+      background: var(--primary-light);
+      color: var(--primary);
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    /* Завдання 1: Гра */
+    .game-body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 1.5rem;
+      padding: 1rem 0;
+    }
+
+    .game-instructions {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      max-width: 500px;
+    }
+
+    .key-wrapper {
+      position: relative;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Стилізація клавіші */
+    #key {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 110px;
+      height: 110px;
+      font-size: 3rem;
+      font-weight: 800;
+      color: var(--primary);
+      background: #ffffff;
+      border: 3px solid #cbd5e1;
+      border-bottom-width: 8px;
+      border-radius: 20px;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+      user-select: none;
+      text-transform: uppercase;
+      transition: all 0.1s ease;
+    }
+
+    #key.pressed {
+      transform: translateY(4px);
+      border-bottom-width: 4px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+    }
+
+    #game-status {
+      font-size: 1rem;
+      font-weight: 600;
+      padding: 0.6rem 1.25rem;
+      border-radius: 12px;
+      background: #f1f5f9;
+      color: #334155;
+      display: inline-block;
+      min-height: 44px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background-color: var(--primary);
+      color: #ffffff;
+      border: none;
+      padding: 0.75rem 1.75rem;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: 10px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+      transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
+    }
+
+    .btn:hover {
+      background-color: var(--primary-hover);
+      box-shadow: 0 6px 16px rgba(33, 150, 243, 0.4);
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    /* Завдання 2: Графік */
+    .chart-container {
+      position: relative;
+      height: 380px;
+      width: 100%;
+    }
+
+    @media (max-width: 640px) {
+      .card {
+        padding: 1.25rem;
+      }
+      header h1 {
+        font-size: 1.5rem;
+      }
+      .chart-container {
+        height: 280px;
+      }
+      #key {
+        width: 85px;
+        height: 85px;
+        font-size: 2.25rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <h1>Практичний модуль: Події JS та Chart.js</h1>
+      <p>Інтерактивна гра з клавіатурою та аналітичний графік продажів</p>
+    </header>
+
+    <!-- ==================== ЗАВДАННЯ 1 ==================== -->
+    <section class="card">
+      <div class="card-header">
+        <h2 class="card-title">
+          <span>🎮</span> Завдання 1: Гра «Натисни правильну клавішу»
+        </h2>
+        <span class="badge">Keyboard Events</span>
+      </div>
+
+      <div class="game-body">
+        <p class="game-instructions">
+          Натискайте вказану клавішу на клавіатурі. Гра підтримує як англійську, так і українську розкладку (за фізичною клавішею).
+        </p>
+
+        <!-- Елемент стану гри -->
+        <div id="game-status">Крок 1 з 10. Очікування натискання клавіші...</div>
+
+        <!-- Елемент для відображення поточної клавіші -->
+        <div class="key-wrapper">
+          <div id="key"></div>
+        </div>
+
+        <!-- Кнопка "Нова гра" -->
+        <button id="btn-new-game" class="btn" type="button">
+          🔄 Нова гра
+        </button>
+      </div>
+    </section>
+
+    <!-- ==================== ЗАВДАННЯ 2 ==================== -->
+    <section class="card">
+      <div class="card-header">
+        <h2 class="card-title">
+          <span>📊</span> Завдання 2: Графік продажів
+        </h2>
+        <span class="badge">Chart.js</span>
+      </div>
+
+      <!-- Контейнер для забезпечення адаптивності графіка -->
+      <div class="chart-container">
+        <!-- Canvas для графіка Chart.js -->
+        <canvas id="sales-chart"></canvas>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    /* ==========================================================================
+       ЗАВДАННЯ 1: Гра "Натисни правильну клавішу"
+       ========================================================================== */
+
+    // 1. Змінні: масив рівно з 10 можливих символів та індекс поточної клавіші
+    const keys = ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"];
+    let currentKeyIndex = 0;
+
+    // Елементи DOM
+    const keyElement = document.getElementById("key");
+    const gameStatusElement = document.getElementById("game-status");
+    const newGameButton = document.getElementById("btn-new-game");
+
+    /**
+     * Оновлення інтерфейсу гри відповідно до поточного індексу
+     */
+    function updateGameDisplay() {
+      if (currentKeyIndex < keys.length) {
+        keyElement.textContent = keys[currentKeyIndex];
+        gameStatusElement.textContent = `Крок ${currentKeyIndex + 1} з ${keys.length}. Натисніть клавішу на клавіатурі.`;
+      } else {
+        keyElement.textContent = "🏆";
+        gameStatusElement.textContent = "🎉 Вітаємо! Ви успішно пройшли всі 10 клавіш!";
+      }
+    }
+
+    /**
+     * Безпечний виклик сповіщень PNotify v5
+     */
+    function notify(type, title, text, delay = 2000) {
+      if (typeof PNotify !== "undefined" && typeof PNotify[type] === "function") {
+        PNotify[type]({
+          title: title,
+          text: text,
+          delay: delay,
+          closer: true,
+          sticker: false
+        });
+      } else if (typeof PNotify !== "undefined" && typeof PNotify.alert === "function") {
+        PNotify.alert({
+          title: title,
+          text: text,
+          type: type,
+          delay: delay
+        });
+      }
+    }
+
+    // 2. Ініціалізація: встановити початковий індекс та вивести keys[currentKeyIndex]
+    currentKeyIndex = 0;
+    updateGameDisplay();
+
+    // 3. Обробка події keydown
+    window.addEventListener("keydown", (event) => {
+      // Ігноруємо функціональні та службові клавіші (Shift, Ctrl, Alt, CapsLock тощо)
+      if (["Shift", "Control", "Alt", "Meta", "CapsLock", "Tab", "Escape"].includes(event.key)) {
+        return;
+      }
+
+      // Якщо гру вже завершено
+      if (currentKeyIndex >= keys.length) {
+        notify(
+          "notice",
+          "Гру завершено!",
+          "Ви вже успішно пройшли гру. Натисніть кнопку «Нова гра», щоб зіграти знову!"
+        );
+        return;
+      }
+
+      const expectedKey = keys[currentKeyIndex];
+      const pressedKey = event.key.toLowerCase();
+
+      // Перевірка збігу: за символом або за фізичним кодом клавіші (підтримує українську розкладку)
+      const isCorrectKey =
+        pressedKey === expectedKey.toLowerCase() ||
+        event.code.toLowerCase() === `key${expectedKey}`.toLowerCase() ||
+        event.code.toLowerCase() === `digit${expectedKey}`.toLowerCase();
+
+      // Візуальний ефект натискання на клавішу
+      keyElement.classList.add("pressed");
+      setTimeout(() => keyElement.classList.remove("pressed"), 120);
+
+      if (isCorrectKey) {
+        // Правильна клавіша: збільшуємо індекс на 1
+        currentKeyIndex++;
+
+        if (currentKeyIndex < keys.length) {
+          // Оновлюємо текст елемента #key
+          updateGameDisplay();
+          // Сповіщення про успіх за допомогою PNotify
+          notify(
+            "success",
+            "Успішно!",
+            `Правильно! Наступна клавіша: "${keys[currentKeyIndex]}"`,
+            1500
+          );
+        } else {
+          // Масив закінчився: оголошуємо перемогу
+          updateGameDisplay();
+          notify(
+            "success",
+            "Перемога! 🏆",
+            "Вітаємо! Ви пройшли всі 10 клавіш. Натисніть «Нова гра», щоб спробувати знову!",
+            4000
+          );
+        }
+      } else {
+        // Неправильна клавіша: сповіщення про помилку (error / notice)
+        notify(
+          "error",
+          "Помилка!",
+          `Неправильна клавіша: "${event.key}". Потрібно натиснути: "${expectedKey}"`,
+          1500
+        );
+      }
+    });
+
+    // 4. Обробка події keypress: запобігання дії за замовчуванням
+    window.addEventListener("keypress", (event) => {
+      event.preventDefault();
+    });
+
+    // 5. Кнопка "Нова гра": скидає індекс, оновлює #key та вітає через PNotify
+    newGameButton.addEventListener("click", () => {
+      currentKeyIndex = 0;
+      updateGameDisplay();
+      notify(
+        "info",
+        "Нова гра",
+        `Гру розпочато спочатку! Ваша перша клавіша: "${keys[currentKeyIndex]}"`,
+        2000
+      );
+    });
+
+
+    /* ==========================================================================
+       ЗАВДАННЯ 2: Графік продажів (Chart.js)
+       ========================================================================== */
+
+    // 1. Точний об'єкт даних згідно з технічним завданням
+    const chartData = {
+      labels: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30"],
+      datasets: [
+        {
+          label: "Продажі за останній місяць",
+          data: [150, 220, 180, 200, 250, 300, 280, 350, 400, 380, 420, 450, 500, 550, 600, 650, 700, 750, 800, 850, 900, 950, 1000, 1050, 1100, 1150, 1200, 1250, 1300, 1350],
+          backgroundColor: "#2196f3",
+          borderColor: "#2196f3",
+          borderWidth: 1,
+        },
+      ],
+    };
+
+    // 2. Отримання 2D-контексту canvas
+    const canvas = document.getElementById("sales-chart");
+    const ctx = canvas.getContext("2d");
+
+    // 3. Конфігурація графіка: тип "line", chartData як дані, responsive: true
+    const chartConfig = {
+      type: "line",
+      data: chartData,
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          mode: "index",
+          intersect: false,
+        },
+        plugins: {
+          legend: {
+            display: true,
+            position: "top",
+            labels: {
+              boxWidth: 14,
+              boxHeight: 14,
+              usePointStyle: false,
+              font: {
+                size: 13,
+                weight: "600",
+                family: "'Segoe UI', system-ui, sans-serif"
+              }
+            }
+          },
+          tooltip: {
+            backgroundColor: "rgba(15, 23, 42, 0.9)",
+            titleFont: { size: 13, weight: "bold" },
+            bodyFont: { size: 13 },
+            padding: 10,
+            cornerRadius: 8,
+            displayColors: true
+          }
+        },
+        scales: {
+          x: {
+            display: true,
+            title: {
+              display: true,
+              text: "День місяця",
+              font: { size: 12, weight: "600" },
+              color: "#64748b"
+            },
+            grid: {
+              color: "#f1f5f9"
+            },
+            ticks: {
+              color: "#64748b"
+            }
+          },
+          y: {
+            display: true,
+            beginAtZero: true,
+            title: {
+              display: true,
+              text: "Кількість продажів (од.)",
+              font: { size: 12, weight: "600" },
+              color: "#64748b"
+            },
+            grid: {
+              color: "#f1f5f9"
+            },
+            ticks: {
+              color: "#64748b"
+            }
+          }
+        }
+      }
+    };
+
+    // 4. Створення екземпляра графіка: new Chart(ctx, config)
+    new Chart(ctx, chartConfig);
+  </script>
+</body>
+</html>
